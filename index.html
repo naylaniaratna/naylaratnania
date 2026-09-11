@@ -1,0 +1,86 @@
+<?php
+$host = "localhost"; $user = "root"; $pass = ""; $db = "db_nilai";
+$conn = mysqli_connect($host, $user, $pass, $db);
+session_start();
+
+if(isset($_GET['logout'])){ session_destroy(); header("Location: index.php"); exit; }
+
+$error = "";
+if(isset($_POST['login'])){
+    $user = mysqli_real_escape_string($conn, $_POST['username']);
+    $pass = mysqli_real_escape_string($conn, $_POST['password']);
+    $q = mysqli_query($conn, "SELECT * FROM users WHERE username='$user' AND password='$pass'");
+    if(mysqli_num_rows($q) == 1){ $_SESSION['login'] = $user; header("Location: index.php"); exit; }
+    else{ $error = "Login Gagal!"; }
+}
+
+if(isset($_POST['simpan']) && isset($_SESSION['login'])){
+    $id_siswa = (int)$_POST['id_siswa'];
+    $mapel = mysqli_real_escape_string($conn, $_POST['mapel']);
+    $nilai = (int)$_POST['nilai'];
+    mysqli_query($conn, "INSERT INTO nilai (id_siswa, mapel, nilai) VALUES ('$id_siswa', '$mapel', '$nilai')");
+}
+
+$siswa = mysqli_query($conn, "SELECT * FROM siswa WHERE kelas='XI TKJ 4' ORDER BY nama ASC");
+$data = mysqli_query($conn, "SELECT n.*, s.nama FROM nilai n JOIN siswa s ON n.id_siswa=s.id ORDER BY n.id DESC");
+function getGrade($n){ if($n >= 90) return "A"; if($n >= 80) return "B"; if($n >= 70) return "C"; if($n >= 60) return "D"; return "E"; }
+?>
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikasi Nilai Ku - XI TKJ 4</title>
+<style>
+body{font-family:'Segoe UI';background:linear-gradient(135deg,#0ea5e9,#6366f1);margin:0;padding:20px;min-height:100vh}
+.box{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:850px;margin:auto;box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+h2{text-align:center;color:#0ea5e9} input,select{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box}
+button{padding:12px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;width:100%}
+.header{display:flex;justify-content:space-between;align-items:center} .logout{background:#ef4444;color:#fff;padding:8px 15px;border-radius:8px;text-decoration:none;width:auto}
+form.input{display:grid;grid-template-columns:2fr 1.5fr 1fr 100px;gap:10px;margin:20px 0}
+table{width:100%;border-collapse:collapse;margin-top:15px} th,td{padding:10px;border:1px solid #ddd;text-align:center;font-size:14px} th{background:#0ea5e9;color:#fff}
+@media(max-width:700px){form.input{grid-template-columns:1fr}}
+</style></head><body><div class="box">
+<?php if(!isset($_SESSION['login'])): ?>
+    <h2>Login Aplikasi Nilai Ku XI TKJ 4</h2>
+    <form method="POST">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button name="login">LOGIN</button>
+    </form>
+    <?php if($error!="") echo "<p style='color:red;text-align:center'>$error</p>"; ?>
+    <p style="text-align:center;font-size:12px">Default: admin / 1234</p>
+<?php else: ?>
+    <div class="header"><h2>Input Nilai XI TKJ 4</h2><a href="index.php?logout=1" class="logout">Logout</a></div>
+    <p>Halo, <b><?=$_SESSION['login']?></b></p>
+    <form method="POST" class="input">
+        <select name="id_siswa" required><option value="">-- Pilih Nama Siswa --</option>
+            <?php mysqli_data_seek($siswa,0); while($s=mysqli_fetch_assoc($siswa)): ?>
+            <option value="<?=$s['id']?>"><?=$s['nama']?></option><?php endwhile; ?>
+        </select>
+        <input type="text" name="mapel" placeholder="Nama Mapel" required>
+        <input type="number" name="nilai" placeholder="Nilai" min="0" max="100" required>
+        <button name="simpan">Simpan</button>
+    </form>
+    <h3>Daftar Nilai</h3><table><tr><th>No</th><th>Nama Siswa</th><th>Mata Pelajaran</th><th>Nilai</th><th>Grade</th></tr>
+        <?php $no=1; while($d=mysqli_fetch_assoc($data)): ?>
+        <tr><td><?=$no++?></td><td style="text-align:left"><?=$d['nama']?></td><td><?=$d['mapel']?></td>
+        <td><b><?=$d['nilai']?></b></td><td><b><?=getGrade($d['nilai'])?></b></td></tr><?php endwhile; ?>
+        <?php if(mysqli_num_rows($data)==0) echo "<tr><td colspan='5'>Belum ada data nilai</td></tr>"; ?>
+    </table>
+<?php endif; ?></div></body></html>
+CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50), password VARCHAR(50));
+CREATE TABLE siswa (id INT AUTO_INCREMENT PRIMARY KEY, nama VARCHAR(100), kelas VARCHAR(10));
+CREATE TABLE nilai (id INT AUTO_INCREMENT PRIMARY KEY, id_siswa INT, mapel VARCHAR(100), nilai INT);
+
+INSERT INTO users (username, password) VALUES ('admin', '1234');
+INSERT INTO siswa (nama, kelas) VALUES
+('AMELIA ULFA', 'XI TKJ 4'), ('ANNISATUL AFIAH', 'XI TKJ 4'), ('ASNATUL ANJANI', 'XI TKJ 4'),
+('CITRA AISYAH RANI', 'XI TKJ 4'), ('CITRA NILAM AL FAQI', 'XI TKJ 4'), ('DEA ISNAENI', 'XI TKJ 4'),
+('DESVITA AURILLIANTI', 'XI TKJ 4'), ('DZIHNI KHASNATU ANJANI', 'XI TKJ 4'), ('EKA MAULIDA AZ-ZAHRA', 'XI TKJ 4'),
+('GAISA RIZKA AMANAH', 'XI TKJ 4'), ('HA''FIZATUN NITSA', 'XI TKJ 4'), ('IQNASIAH ZAHROTUSSIFA', 'XI TKJ 4'),
+('ISKI AINAYAH', 'XI TKJ 4'), ('Jhasmin Valenfia Tasya', 'XI TKJ 4'), ('LELI NUROH', 'XI TKJ 4'),
+('M. ALTOF SAIDAN', 'XI TKJ 4'), ('MAULANA RAFI', 'XI TKJ 4'), ('MEIKA AULIA HARVINNAISYA', 'XI TKJ 4'),
+('MUHAMMAD ALAMZAH', 'XI TKJ 4'), ('Muhammad Cesario Izzan Azizi', 'XI TKJ 4'), ('MUHAMMAD SYAHID FAA''IZ', 'XI TKJ 4'),
+('NAYLA FAOZIANA', 'XI TKJ 4'), ('Nia Dwi Febriani', 'XI TKJ 4'), ('NUR ANDINI', 'XI TKJ 4'),
+('NUR FATIKHA SARI', 'XI TKJ 4'), ('NURIL MAULIDYA', 'XI TKJ 4'), ('NURUL HIDAYAH', 'XI TKJ 4'),
+('PUJA SUKMA AYU', 'XI TKJ 4'), ('PUTRI OKTAFIANI', 'XI TKJ 4'), ('RATNA SARI DEWI', 'XI TKJ 4'),
+('RIA IDNI RAHMAWATI', 'XI TKJ 4'), ('SELI SILVI YANTI', 'XI TKJ 4'), ('SYIFA ''ALAWIYAH', 'XI TKJ 4'),
+('Syifa Putri Rahmadani', 'XI TKJ 4'), ('WINDI DWI PRASASTI', 'XI TKJ 4'), ('ZAZKIYAH DZULHIJAH', 'XI TKJ 4');
